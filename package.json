@@ -1,8 +1,9 @@
 {
   "name": "textor",
-  "displayName": "textor",
+  "displayName": "Textor",
   "description": "format/convert text of json/escape/unicode/url/base64/timestamp and so on.",
   "version": "0.0.1",
+  "publisher": "iccolo",
   "engines": {
     "vscode": "^1.100.0"
   },

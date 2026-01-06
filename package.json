@@ -1,0 +1,193 @@
+{
+  "name": "textor",
+  "displayName": "textor",
+  "description": "format/convert text of json/escape/unicode/url/base64/timestamp and so on.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:textor.sidebarView"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "textor",
+          "title": "Textor",
+          "icon": "$(tools)"
+        }
+      ]
+    },
+    "views": {
+      "textor": [
+        {
+          "type": "webview",
+          "id": "textor.sidebarView",
+          "name": "Tools"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "textor.smartTransform",
+        "title": "Textor: Smart Transform"
+      },
+      {
+        "command": "textor.openPanel",
+        "title": "Textor: Open Tools Panel"
+      },
+      {
+        "command": "textor.base64Encode",
+        "title": "Textor: Base64 Encode"
+      },
+      {
+        "command": "textor.base64Decode",
+        "title": "Textor: Base64 Decode"
+      },
+      {
+        "command": "textor.jsonFormat",
+        "title": "Textor: JSON Format"
+      },
+      {
+        "command": "textor.jsonMinify",
+        "title": "Textor: JSON Minify"
+      },
+      {
+        "command": "textor.urlEncode",
+        "title": "Textor: URL Encode"
+      },
+      {
+        "command": "textor.urlDecode",
+        "title": "Textor: URL Decode"
+      },
+      {
+        "command": "textor.escape",
+        "title": "Textor: Escape"
+      },
+      {
+        "command": "textor.unescape",
+        "title": "Textor: Unescape"
+      },
+      {
+        "command": "textor.unicodeEncode",
+        "title": "Textor: Unicode Encode"
+      },
+      {
+        "command": "textor.unicodeDecode",
+        "title": "Textor: Unicode Decode"
+      },
+      {
+        "command": "textor.timestampToDate",
+        "title": "Textor: Timestamp to Date"
+      },
+      {
+        "command": "textor.dateToTimestamp",
+        "title": "Textor: Date to Timestamp"
+      },
+      {
+        "command": "textor.ipToInt",
+        "title": "Textor: IP to Integer"
+      },
+      {
+        "command": "textor.intToIp",
+        "title": "Textor: Integer to IP"
+      },
+      {
+        "command": "textor.sqlFormat",
+        "title": "Textor: SQL Format"
+      },
+      {
+        "command": "textor.sqlMinify",
+        "title": "Textor: SQL Minify"
+      },
+      {
+        "command": "textor.toUpperCase",
+        "title": "Textor: To Upper Case"
+      },
+      {
+        "command": "textor.toLowerCase",
+        "title": "Textor: To Lower Case"
+      },
+      {
+        "command": "textor.toTitleCase",
+        "title": "Textor: To Title Case"
+      },
+      {
+        "command": "textor.toCamelCase",
+        "title": "Textor: To Camel Case"
+      },
+      {
+        "command": "textor.toSnakeCase",
+        "title": "Textor: To Snake Case"
+      },
+      {
+        "command": "textor.hexToProtobuf",
+        "title": "Textor: Hex to Protobuf"
+      },
+      {
+        "command": "textor.protobufToHex",
+        "title": "Textor: Protobuf to Hex"
+      },
+      {
+        "command": "textor.asciiToHex",
+        "title": "Textor: ASCII to Hex"
+      },
+      {
+        "command": "textor.hexToAscii",
+        "title": "Textor: Hex to ASCII"
+      },
+      {
+        "command": "textor.protoFormat",
+        "title": "Textor: Proto Format"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "textor.smartTransform",
+          "when": "editorHasSelection",
+          "group": "textor@0"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "textor.smartTransform",
+        "key": "shift+alt+f",
+        "mac": "shift+alt+f",
+        "when": "editorHasSelection"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && npm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.100.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "typescript-eslint": "^8.48.1",
+    "eslint": "^9.39.1",
+    "esbuild": "^0.27.1",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.9.3",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}

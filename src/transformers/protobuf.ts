@@ -572,24 +572,46 @@ function formatProtoContent(text: string): string {
 			i++;
 		}
 
-		// 计算对齐宽度
-		let maxBeforeEquals = 0;
+		// 解析 beforeEquals 为 "类型 名称" 格式，分别计算最大宽度
+		interface FieldParts {
+			typePart: string;    // 类型部分（如 "optional int32", "repeated string"）
+			namePart: string;    // 变量名称部分
+			original: ProtoLine;
+		}
+		
+		const fieldParts: FieldParts[] = [];
+		let maxTypePart = 0;
+		let maxNamePart = 0;
 		let maxFieldEnd = 0;  // 等号 + 字段编号 + 分号的总长度
 		
 		for (const f of fieldGroup) {
-			maxBeforeEquals = Math.max(maxBeforeEquals, f.beforeEquals.length);
+			// beforeEquals 格式如: "optional int32 id" 或 "string name"
+			// 需要将最后一个单词作为名称，其余作为类型
+			const parts = f.beforeEquals.trim().split(/\s+/);
+			const namePart = parts.pop() || '';
+			const typePart = parts.join(' ');
+			
+			fieldParts.push({ typePart, namePart, original: f });
+			maxTypePart = Math.max(maxTypePart, typePart.length);
+			maxNamePart = Math.max(maxNamePart, namePart.length);
+			
 			// 计算 " = xxx;" 的长度用于注释对齐
 			const fieldEndLen = 3 + f.afterEquals.length + 1; // " = " + afterEquals + ";"
 			maxFieldEnd = Math.max(maxFieldEnd, fieldEndLen);
 		}
 
-		// 输出对齐后的字段
-		for (const f of fieldGroup) {
+		// 输出对齐后的字段：类型左对齐，名称左对齐
+		for (const fp of fieldParts) {
+			const f = fp.original;
 			const prefix = indentStr.repeat(f.indent);
-			const paddedBefore = f.beforeEquals.padEnd(maxBeforeEquals);
 			
-			// 分号紧跟字段编号，不留空格
-			const fieldPart = `${prefix}${paddedBefore} = ${f.afterEquals};`;
+			// 类型部分左对齐
+			const paddedType = fp.typePart.padEnd(maxTypePart);
+			// 名称部分左对齐
+			const paddedName = fp.namePart.padEnd(maxNamePart);
+			
+			// 组合：类型 名称 = 编号;
+			const fieldPart = `${prefix}${paddedType} ${paddedName} = ${f.afterEquals};`;
 			
 			if (f.comment) {
 				// 计算需要填充的空格数以对齐注释（分号后2格起）

@@ -20,7 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// 注册打开 UI 面板的命令
 	const openPanelCmd = vscode.commands.registerCommand('textor.openPanel', () => {
-		TextorPanel.show(context.extensionUri);
+		TextorPanel.show(context.extensionUri, context);
 	});
 	context.subscriptions.push(openPanelCmd);
 

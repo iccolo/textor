@@ -3,11 +3,16 @@ import * as vscode from 'vscode';
 export class TextorPanel {
 	public static currentPanel: TextorPanel | undefined;
 	private readonly _panel: vscode.WebviewPanel;
+	private readonly _context: vscode.ExtensionContext;
 	private _disposables: vscode.Disposable[] = [];
 
-	private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+	private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, context: vscode.ExtensionContext) {
 		this._panel = panel;
-		this._panel.webview.html = this._getHtmlContent();
+		this._context = context;
+		
+		// 获取保存的设置
+		const savedSettings = this._context.globalState.get<Record<string, unknown>>('textorPanelSettings', {});
+		this._panel.webview.html = this._getHtmlContent(savedSettings);
 
 		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
@@ -26,6 +31,9 @@ export class TextorPanel {
 							});
 						}
 						break;
+					case 'saveSettings':
+						await this._context.globalState.update('textorPanelSettings', message.settings);
+						break;
 				}
 			},
 			null,
@@ -33,7 +41,7 @@ export class TextorPanel {
 		);
 	}
 
-	public static show(extensionUri: vscode.Uri) {
+	public static show(extensionUri: vscode.Uri, context: vscode.ExtensionContext) {
 		const column = vscode.window.activeTextEditor
 			? vscode.window.activeTextEditor.viewColumn
 			: undefined;
@@ -53,7 +61,7 @@ export class TextorPanel {
 			}
 		);
 
-		TextorPanel.currentPanel = new TextorPanel(panel, extensionUri);
+		TextorPanel.currentPanel = new TextorPanel(panel, extensionUri, context);
 	}
 
 	public dispose() {
@@ -67,7 +75,8 @@ export class TextorPanel {
 		}
 	}
 
-	private _getHtmlContent(): string {
+	private _getHtmlContent(savedSettings: Record<string, unknown>): string {
+		const settingsJson = JSON.stringify(savedSettings);
 		return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -174,20 +183,26 @@ export class TextorPanel {
 	<div class="section">
 		<div class="section-title">时间工具</div>
 		<div class="row">
-			<label>当前时间:</label>
-			<div class="result" id="currentTime">-</div>
+			<label>时间字符串:</label>
+			<input type="text" id="timeInput" placeholder="如: 2025-01-10 12:00:00">
+		</div>
+		<div class="row" style="justify-content: flex-start; margin-top: 4px; margin-bottom: 4px;">
+			<div class="btn-group">
+				<button class="secondary" onclick="convertToTimestamp()">↓ 转为时间戳</button>
+				<button class="secondary" onclick="convertToTime()">↑ 转为时间</button>
+				<button class="secondary" onclick="setCurrentTime()">当前时间</button>
+			</div>
 		</div>
 		<div class="row">
 			<label>时间戳:</label>
-			<div class="result" id="currentTimestamp">-</div>
+			<input type="text" id="timestampInput" placeholder="如: 1736481600">
 		</div>
-		<div class="row">
+		<div class="row" style="margin-top: 4px;">
 			<div class="btn-group">
-				<button onclick="refreshTime()">刷新</button>
-				<button class="secondary" onclick="copyText('currentTime')">复制时间</button>
-				<button class="secondary" onclick="copyText('currentTimestamp')">复制时间戳</button>
-				<button class="secondary" onclick="insertText('currentTime')">插入时间</button>
-				<button class="secondary" onclick="insertText('currentTimestamp')">插入时间戳</button>
+				<button class="secondary" onclick="copyValue('timeInput')">复制时间</button>
+				<button class="secondary" onclick="copyValue('timestampInput')">复制时间戳</button>
+				<button class="secondary" onclick="insertValue('timeInput')">插入时间</button>
+				<button class="secondary" onclick="insertValue('timestampInput')">插入时间戳</button>
 			</div>
 		</div>
 	</div>
@@ -197,18 +212,18 @@ export class TextorPanel {
 		<div class="section-title">密码生成器</div>
 		<div class="row">
 			<label>长度:</label>
-			<input type="number" id="passwordLength" value="16" min="4" max="128" style="max-width: 80px;">
+			<input type="number" id="passwordLength" value="16" min="4" max="128" style="max-width: 80px;" onchange="saveSettings()">
 			<label style="min-width: auto;">
-				<input type="checkbox" id="includeLower" checked> 小写
+				<input type="checkbox" id="includeLower" checked onchange="saveSettings()"> 小写
 			</label>
 			<label style="min-width: auto;">
-				<input type="checkbox" id="includeUpper" checked> 大写
+				<input type="checkbox" id="includeUpper" checked onchange="saveSettings()"> 大写
 			</label>
 			<label style="min-width: auto;">
-				<input type="checkbox" id="includeNumber" checked> 数字
+				<input type="checkbox" id="includeNumber" checked onchange="saveSettings()"> 数字
 			</label>
 			<label style="min-width: auto;">
-				<input type="checkbox" id="includeSymbol" checked> 符号
+				<input type="checkbox" id="includeSymbol" checked onchange="saveSettings()"> 符号
 			</label>
 		</div>
 		<div class="row">
@@ -229,7 +244,7 @@ export class TextorPanel {
 		<div class="section-title">UUID 生成器</div>
 		<div class="row">
 			<label>格式:</label>
-			<select id="uuidFormat" style="max-width: 200px;">
+			<select id="uuidFormat" style="max-width: 200px;" onchange="saveSettings()">
 				<option value="standard">标准 (带连字符)</option>
 				<option value="nohyphen">无连字符</option>
 				<option value="uppercase">大写</option>
@@ -251,6 +266,50 @@ export class TextorPanel {
 
 	<script>
 		const vscode = acquireVsCodeApi();
+		
+		// 从扩展传入的初始设置
+		let savedSettings = ${settingsJson};
+
+		// 保存设置
+		function saveSettings() {
+			const settings = {
+				passwordLength: parseInt(document.getElementById('passwordLength').value) || 16,
+				includeLower: document.getElementById('includeLower').checked,
+				includeUpper: document.getElementById('includeUpper').checked,
+				includeNumber: document.getElementById('includeNumber').checked,
+				includeSymbol: document.getElementById('includeSymbol').checked,
+				uuidFormat: document.getElementById('uuidFormat').value
+			};
+			vscode.postMessage({ command: 'saveSettings', settings: settings });
+			vscode.setState(settings);
+		}
+
+		// 恢复设置
+		function restoreSettings() {
+			const state = vscode.getState();
+			if (state) {
+				savedSettings = state;
+			}
+			
+			if (savedSettings.passwordLength) {
+				document.getElementById('passwordLength').value = savedSettings.passwordLength;
+			}
+			if (savedSettings.includeLower !== undefined) {
+				document.getElementById('includeLower').checked = savedSettings.includeLower;
+			}
+			if (savedSettings.includeUpper !== undefined) {
+				document.getElementById('includeUpper').checked = savedSettings.includeUpper;
+			}
+			if (savedSettings.includeNumber !== undefined) {
+				document.getElementById('includeNumber').checked = savedSettings.includeNumber;
+			}
+			if (savedSettings.includeSymbol !== undefined) {
+				document.getElementById('includeSymbol').checked = savedSettings.includeSymbol;
+			}
+			if (savedSettings.uuidFormat) {
+				document.getElementById('uuidFormat').value = savedSettings.uuidFormat;
+			}
+		}
 
 		function formatDate(date) {
 			const year = date.getFullYear();
@@ -262,10 +321,69 @@ export class TextorPanel {
 			return year + '-' + month + '-' + day + ' ' + hours + ':' + minutes + ':' + seconds;
 		}
 
-		function refreshTime() {
+		function setCurrentTime() {
 			const now = new Date();
-			document.getElementById('currentTime').textContent = formatDate(now);
-			document.getElementById('currentTimestamp').textContent = Math.floor(now.getTime() / 1000);
+			document.getElementById('timeInput').value = formatDate(now);
+			document.getElementById('timestampInput').value = Math.floor(now.getTime() / 1000);
+		}
+
+		function convertToTimestamp() {
+			const timeStr = document.getElementById('timeInput').value.trim();
+			if (!timeStr) {
+				return;
+			}
+			try {
+				const date = new Date(timeStr.replace(/-/g, '/'));
+				if (isNaN(date.getTime())) {
+					document.getElementById('timestampInput').value = '无效的时间格式';
+					return;
+				}
+				document.getElementById('timestampInput').value = Math.floor(date.getTime() / 1000);
+			} catch (e) {
+				document.getElementById('timestampInput').value = '无效的时间格式';
+			}
+		}
+
+		function convertToTime() {
+			const tsStr = document.getElementById('timestampInput').value.trim();
+			if (!tsStr) {
+				return;
+			}
+			try {
+				let ts = parseInt(tsStr, 10);
+				if (isNaN(ts)) {
+					document.getElementById('timeInput').value = '无效的时间戳';
+					return;
+				}
+				// 自动判断秒级或毫秒级
+				if (ts > 9999999999) {
+					// 毫秒级
+				} else {
+					ts = ts * 1000;
+				}
+				const date = new Date(ts);
+				if (isNaN(date.getTime())) {
+					document.getElementById('timeInput').value = '无效的时间戳';
+					return;
+				}
+				document.getElementById('timeInput').value = formatDate(date);
+			} catch (e) {
+				document.getElementById('timeInput').value = '无效的时间戳';
+			}
+		}
+
+		function copyValue(elementId) {
+			const text = document.getElementById(elementId).value;
+			if (text) {
+				vscode.postMessage({ command: 'copy', text: text });
+			}
+		}
+
+		function insertValue(elementId) {
+			const text = document.getElementById(elementId).value;
+			if (text) {
+				vscode.postMessage({ command: 'insert', text: text });
+			}
 		}
 
 		function generatePassword() {
@@ -275,24 +393,73 @@ export class TextorPanel {
 			const includeNumber = document.getElementById('includeNumber').checked;
 			const includeSymbol = document.getElementById('includeSymbol').checked;
 
-			let chars = '';
-			if (includeLower) chars += 'abcdefghijklmnopqrstuvwxyz';
-			if (includeUpper) chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-			if (includeNumber) chars += '0123456789';
-			if (includeSymbol) chars += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+			const lowerChars = 'abcdefghijklmnopqrstuvwxyz';
+			const upperChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+			const numberChars = '0123456789';
+			const symbolChars = '!@#$%^&*()_+-=[]{}|;:,.<>?';
 
-			if (!chars) {
+			let allChars = '';
+			const requiredChars = [];
+			
+			if (includeLower) {
+				allChars += lowerChars;
+				requiredChars.push(lowerChars);
+			}
+			if (includeUpper) {
+				allChars += upperChars;
+				requiredChars.push(upperChars);
+			}
+			if (includeNumber) {
+				allChars += numberChars;
+				requiredChars.push(numberChars);
+			}
+			if (includeSymbol) {
+				allChars += symbolChars;
+				requiredChars.push(symbolChars);
+			}
+
+			if (!allChars) {
 				document.getElementById('generatedPassword').textContent = '请至少选择一种字符类型';
 				return;
 			}
 
-			let password = '';
-			const array = new Uint32Array(length);
-			crypto.getRandomValues(array);
-			for (let i = 0; i < length; i++) {
-				password += chars[array[i] % chars.length];
+			if (length < requiredChars.length) {
+				document.getElementById('generatedPassword').textContent = '密码长度不足以包含所有选中的字符类型';
+				return;
 			}
-			document.getElementById('generatedPassword').textContent = password;
+
+			// 生成密码：先确保每种类型至少一个
+			let password = [];
+			const array = new Uint32Array(length + requiredChars.length);
+			crypto.getRandomValues(array);
+			
+			// 判断是否需要首字符为字母
+			const letterChars = (includeLower ? lowerChars : '') + (includeUpper ? upperChars : '');
+			
+			// 每种必选类型随机取一个
+			for (let i = 0; i < requiredChars.length; i++) {
+				const charSet = requiredChars[i];
+				password.push(charSet[array[i] % charSet.length]);
+			}
+			
+			// 剩余位置从所有字符中随机
+			for (let i = requiredChars.length; i < length; i++) {
+				password.push(allChars[array[i] % allChars.length]);
+			}
+			
+			// 打乱顺序（如果需要首字符为字母，则从索引1开始打乱）
+			const shuffleStart = letterChars ? 1 : 0;
+			for (let i = password.length - 1; i > shuffleStart; i--) {
+				const j = shuffleStart + (array[length + i] % (i - shuffleStart + 1));
+				[password[i], password[j]] = [password[j], password[i]];
+			}
+			
+			// 确保首字符为字母
+			if (letterChars) {
+				password[0] = letterChars[array[length] % letterChars.length];
+			}
+			
+			document.getElementById('generatedPassword').textContent = password.join('');
 		}
 
 		function generateUuid() {
@@ -333,12 +500,10 @@ export class TextorPanel {
 		}
 
 		// 初始化
-		refreshTime();
+		restoreSettings();
+		setCurrentTime();
 		generatePassword();
 		generateUuid();
-
-		// 每秒更新时间
-		setInterval(refreshTime, 1000);
 	</script>
 </body>
 </html>`;

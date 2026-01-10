@@ -251,17 +251,22 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 		</div>
 		<div class="section-content">
 			<div class="row">
-				<label>当前时间</label>
-				<div class="result" id="currentTime">-</div>
+				<label>时间字符串</label>
+				<input type="text" id="timeInput" style="width:100%;padding:4px 8px;border:1px solid var(--vscode-input-border);background-color:var(--vscode-input-background);color:var(--vscode-input-foreground);border-radius:3px;font-family:var(--vscode-editor-font-family);font-size:0.85em;" placeholder="如: 2025-01-10 12:00:00">
+			</div>
+			<div class="btn-group" style="margin-top: 2px; margin-bottom: 2px;">
+				<button class="secondary" onclick="convertToTimestamp()">↓ 转时间戳</button>
+				<button class="secondary" onclick="convertToTime()">↑ 转时间</button>
+				<button class="secondary" onclick="setCurrentTime()">当前</button>
 			</div>
 			<div class="row">
 				<label>时间戳</label>
-				<div class="result" id="currentTimestamp">-</div>
+				<input type="text" id="timestampInput" style="width:100%;padding:4px 8px;border:1px solid var(--vscode-input-border);background-color:var(--vscode-input-background);color:var(--vscode-input-foreground);border-radius:3px;font-family:var(--vscode-editor-font-family);font-size:0.85em;" placeholder="如: 1736481600">
 			</div>
-			<div class="btn-group">
-				<button onclick="refreshTime()">刷新</button>
-				<button class="secondary" onclick="copyText('currentTimestamp')">复制</button>
-				<button class="secondary" onclick="insertText('currentTimestamp')">插入</button>
+			<div class="btn-group" style="margin-top: 2px;">
+				<button class="secondary" onclick="copyValue('timeInput')">复制时间</button>
+				<button class="secondary" onclick="copyValue('timestampInput')">复制戳</button>
+				<button class="secondary" onclick="insertValue('timestampInput')">插入</button>
 			</div>
 		</div>
 	</div>
@@ -453,14 +458,17 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 			vscode.setState(settings);
 		}
 
-		// 恢复设置
+		// 恢复设置（仅更新 savedSettings 变量，不操作 DOM）
 		function restoreSettings() {
 			// 优先使用 webview state，其次使用扩展传入的设置
 			const state = vscode.getState();
 			if (state) {
 				savedSettings = state;
 			}
-			
+		}
+
+		// 应用设置到 DOM
+		function applySettings() {
 			if (savedSettings.passwordLength) {
 				document.getElementById('passwordLength').value = savedSettings.passwordLength;
 			}
@@ -498,10 +506,69 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 			return year + '-' + month + '-' + day + ' ' + hours + ':' + minutes + ':' + seconds;
 		}
 
-		function refreshTime() {
+		function setCurrentTime() {
 			const now = new Date();
-			document.getElementById('currentTime').textContent = formatDate(now);
-			document.getElementById('currentTimestamp').textContent = Math.floor(now.getTime() / 1000);
+			document.getElementById('timeInput').value = formatDate(now);
+			document.getElementById('timestampInput').value = Math.floor(now.getTime() / 1000);
+		}
+
+		function convertToTimestamp() {
+			const timeStr = document.getElementById('timeInput').value.trim();
+			if (!timeStr) {
+				return;
+			}
+			try {
+				const date = new Date(timeStr.replace(/-/g, '/'));
+				if (isNaN(date.getTime())) {
+					document.getElementById('timestampInput').value = '无效的时间格式';
+					return;
+				}
+				document.getElementById('timestampInput').value = Math.floor(date.getTime() / 1000);
+			} catch (e) {
+				document.getElementById('timestampInput').value = '无效的时间格式';
+			}
+		}
+
+		function convertToTime() {
+			const tsStr = document.getElementById('timestampInput').value.trim();
+			if (!tsStr) {
+				return;
+			}
+			try {
+				let ts = parseInt(tsStr, 10);
+				if (isNaN(ts)) {
+					document.getElementById('timeInput').value = '无效的时间戳';
+					return;
+				}
+				// 自动判断秒级或毫秒级
+				if (ts > 9999999999) {
+					// 毫秒级
+				} else {
+					ts = ts * 1000;
+				}
+				const date = new Date(ts);
+				if (isNaN(date.getTime())) {
+					document.getElementById('timeInput').value = '无效的时间戳';
+					return;
+				}
+				document.getElementById('timeInput').value = formatDate(date);
+			} catch (e) {
+				document.getElementById('timeInput').value = '无效的时间戳';
+			}
+		}
+
+		function copyValue(elementId) {
+			const text = document.getElementById(elementId).value;
+			if (text) {
+				vscode.postMessage({ command: 'copy', text: text });
+			}
+		}
+
+		function insertValue(elementId) {
+			const text = document.getElementById(elementId).value;
+			if (text) {
+				vscode.postMessage({ command: 'insert', text: text });
+			}
 		}
 
 		function generatePassword() {
@@ -510,26 +577,73 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 			const includeUpper = document.getElementById('includeUpper').checked;
 			const includeNumber = document.getElementById('includeNumber').checked;
 
-			let chars = '';
-			if (includeLower) chars += 'abcdefghijklmnopqrstuvwxyz';
-			if (includeUpper) chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-			if (includeNumber) chars += '0123456789';
+			const lowerChars = 'abcdefghijklmnopqrstuvwxyz';
+			const upperChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+			const numberChars = '0123456789';
+			const symbolChars = Array.from(selectedSymbols).join('');
+
+			let allChars = '';
+			const requiredChars = [];
+			
+			if (includeLower) {
+				allChars += lowerChars;
+				requiredChars.push(lowerChars);
+			}
+			if (includeUpper) {
+				allChars += upperChars;
+				requiredChars.push(upperChars);
+			}
+			if (includeNumber) {
+				allChars += numberChars;
+				requiredChars.push(numberChars);
+			}
 			if (selectedSymbols.size > 0) {
-				chars += Array.from(selectedSymbols).join('');
+				allChars += symbolChars;
+				requiredChars.push(symbolChars);
 			}
 
-			if (!chars) {
+			if (!allChars) {
 				document.getElementById('generatedPassword').textContent = '请至少选择一种字符类型';
 				return;
 			}
 
-			let password = '';
-			const array = new Uint32Array(length);
-			crypto.getRandomValues(array);
-			for (let i = 0; i < length; i++) {
-				password += chars[array[i] % chars.length];
+			if (length < requiredChars.length) {
+				document.getElementById('generatedPassword').textContent = '密码长度不足';
+				return;
 			}
-			document.getElementById('generatedPassword').textContent = password;
+
+			// 生成密码：先确保每种类型至少一个
+			let password = [];
+			const array = new Uint32Array(length + requiredChars.length);
+			crypto.getRandomValues(array);
+			
+			// 判断是否需要首字符为字母
+			const letterChars = (includeLower ? lowerChars : '') + (includeUpper ? upperChars : '');
+			
+			// 每种必选类型随机取一个
+			for (let i = 0; i < requiredChars.length; i++) {
+				const charSet = requiredChars[i];
+				password.push(charSet[array[i] % charSet.length]);
+			}
+			
+			// 剩余位置从所有字符中随机
+			for (let i = requiredChars.length; i < length; i++) {
+				password.push(allChars[array[i] % allChars.length]);
+			}
+			
+			// 打乱顺序（如果需要首字符为字母，则从索引1开始打乱）
+			const shuffleStart = letterChars ? 1 : 0;
+			for (let i = password.length - 1; i > shuffleStart; i--) {
+				const j = shuffleStart + (array[length + i] % (i - shuffleStart + 1));
+				[password[i], password[j]] = [password[j], password[i]];
+			}
+			
+			// 确保首字符为字母
+			if (letterChars) {
+				password[0] = letterChars[array[length] % letterChars.length];
+			}
+			
+			document.getElementById('generatedPassword').textContent = password.join('');
 		}
 
 		function generateUuid() {
@@ -602,14 +716,12 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 		}
 
 		// 初始化
-		initSymbolGrid();
-		restoreSettings();
-		refreshTime();
+		restoreSettings();      // 先恢复 savedSettings 变量
+		initSymbolGrid();       // 使用 savedSettings 初始化符号网格
+		applySettings();        // 应用其他设置到 DOM
+		setCurrentTime();
 		generatePassword();
 		generateUuid();
-
-		// 每秒更新时间
-		setInterval(refreshTime, 1000);
 	</script>
 </body>
 </html>`;

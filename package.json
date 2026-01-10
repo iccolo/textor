@@ -2,7 +2,7 @@
   "name": "textor",
   "displayName": "Textor",
   "description": "Text formatting and conversion tool: JSON, Base64, URL, Unicode, Timestamp, IP, SQL, Protobuf, Hex/ASCII and more.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "iccolo",
   "icon": "icon.jpg",
   "license": "MIT",

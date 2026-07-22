@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { getWebviewL10n } from '../utils/l10n';
 
 export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 	public static readonly viewType = 'textor.sidebarView';
@@ -29,7 +30,7 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 			switch (message.command) {
 				case 'copy':
 					await vscode.env.clipboard.writeText(message.text);
-					vscode.window.showInformationMessage('已复制到剪贴板');
+					vscode.window.showInformationMessage(vscode.l10n.t('Copied to clipboard'));
 					break;
 				case 'insert':
 					const editor = vscode.window.activeTextEditor;
@@ -49,12 +50,17 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 
 	private _getHtmlContent(savedSettings: Record<string, unknown>): string {
 		const settingsJson = JSON.stringify(savedSettings);
+		const t = getWebviewL10n();
+		const codiconsUri = this._view!.webview.asWebviewUri(
+			vscode.Uri.joinPath(this._extensionUri, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css')
+		);
 		return `<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="${t.lang}">
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Textor Tools</title>
+	<link href="${codiconsUri}" rel="stylesheet">
 	<style>
 		* {
 			box-sizing: border-box;
@@ -147,20 +153,97 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 			background-color: var(--vscode-button-secondaryHoverBackground);
 		}
 		.result {
+			width: 100%;
 			font-family: var(--vscode-editor-font-family);
 			padding: 6px 8px;
 			background-color: var(--vscode-input-background);
+			color: var(--vscode-input-foreground);
 			border: 1px solid var(--vscode-input-border);
 			border-radius: 3px;
-			word-break: break-all;
-			min-height: 26px;
 			font-size: 0.85em;
+			box-sizing: border-box;
+			cursor: text;
+			outline: none;
 		}
 		.btn-group {
 			display: flex;
 			flex-wrap: wrap;
 			gap: 4px;
 			margin-top: 6px;
+		}
+		.input-with-suffix {
+			position: relative;
+			width: 100%;
+			display: flex;
+			align-items: center;
+		}
+		.input-with-suffix input {
+			width: 100%;
+			padding: 4px 60px 4px 8px;
+			flex: none;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: clip;
+		}
+		.input-actions {
+			position: absolute;
+			right: 2px;
+			top: 0;
+			height: 100%;
+			display: flex;
+			align-items: center;
+			gap: 1px;
+		}
+		.input-actions .icon-btn {
+			background: transparent;
+			border: none;
+			color: var(--vscode-foreground);
+			padding: 1px 3px;
+			font-size: 12px;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			border-radius: 2px;
+		}
+		.input-actions .icon-btn:hover {
+			background-color: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground));
+		}
+		.result-with-suffix {
+			position: relative;
+			width: 100%;
+			display: flex;
+			align-items: center;
+		}
+		.result-with-suffix .result {
+			padding: 6px 42px 6px 8px;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: clip;
+		}
+		.result-actions {
+			position: absolute;
+			right: 2px;
+			top: 0;
+			height: 100%;
+			display: flex;
+			align-items: center;
+			gap: 1px;
+		}
+		.result-actions .icon-btn {
+			background: transparent;
+			border: none;
+			color: var(--vscode-foreground);
+			padding: 1px 3px;
+			font-size: 12px;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			border-radius: 2px;
+		}
+		.result-actions .icon-btn:hover {
+			background-color: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground));
 		}
 		.checkbox-group {
 			display: flex;
@@ -247,26 +330,28 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 	<div class="section collapsed" id="section-time">
 		<div class="section-header" onclick="toggleSection('time')">
 			<span class="arrow">▼</span>
-			<span>时间工具</span>
+			<span>${t.timeTools}</span>
 		</div>
 		<div class="section-content">
 			<div class="row">
-				<label>时间字符串</label>
-				<input type="text" id="timeInput" style="width:100%;padding:4px 8px;border:1px solid var(--vscode-input-border);background-color:var(--vscode-input-background);color:var(--vscode-input-foreground);border-radius:3px;font-family:var(--vscode-editor-font-family);font-size:0.85em;" placeholder="如: 2025-01-10 12:00:00">
-			</div>
-			<div class="btn-group" style="margin-top: 2px; margin-bottom: 2px;">
-				<button class="secondary" onclick="convertToTimestamp()">↓ 转时间戳</button>
-				<button class="secondary" onclick="convertToTime()">↑ 转时间</button>
-				<button class="secondary" onclick="setCurrentTime()">当前</button>
+				<label>${t.timeString}</label>
+				<div class="input-with-suffix">
+					<input type="text" id="timeInput" style="border:1px solid var(--vscode-input-border);background-color:var(--vscode-input-background);color:var(--vscode-input-foreground);border-radius:3px;font-family:var(--vscode-editor-font-family);font-size:0.85em;" placeholder="${t.timePlaceholder}" oninput="onTimeInput()">
+					<div class="input-actions">
+						<button class="icon-btn" onclick="setCurrentTime()" title="${t.refresh}"><i class="codicon codicon-refresh"></i></button>
+						<button class="icon-btn" onclick="copyValue('timeInput')" title="${t.copy}"><i class="codicon codicon-copy"></i></button>
+					</div>
+				</div>
 			</div>
 			<div class="row">
-				<label>时间戳</label>
-				<input type="text" id="timestampInput" style="width:100%;padding:4px 8px;border:1px solid var(--vscode-input-border);background-color:var(--vscode-input-background);color:var(--vscode-input-foreground);border-radius:3px;font-family:var(--vscode-editor-font-family);font-size:0.85em;" placeholder="如: 1736481600">
-			</div>
-			<div class="btn-group" style="margin-top: 2px;">
-				<button class="secondary" onclick="copyValue('timeInput')">复制时间</button>
-				<button class="secondary" onclick="copyValue('timestampInput')">复制戳</button>
-				<button class="secondary" onclick="insertValue('timestampInput')">插入</button>
+				<label>${t.timestamp}</label>
+				<div class="input-with-suffix">
+					<input type="text" id="timestampInput" style="border:1px solid var(--vscode-input-border);background-color:var(--vscode-input-background);color:var(--vscode-input-foreground);border-radius:3px;font-family:var(--vscode-editor-font-family);font-size:0.85em;" placeholder="${t.timestampPlaceholder}" oninput="onTimestampInput()">
+					<div class="input-actions">
+						<button class="icon-btn" onclick="setCurrentTime()" title="${t.refresh}"><i class="codicon codicon-refresh"></i></button>
+						<button class="icon-btn" onclick="copyValue('timestampInput')" title="${t.copy}"><i class="codicon codicon-copy"></i></button>
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -275,19 +360,19 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 	<div class="section collapsed" id="section-password">
 		<div class="section-header" onclick="toggleSection('password')">
 			<span class="arrow">▼</span>
-			<span>密码生成器</span>
+			<span>${t.passwordGenerator}</span>
 		</div>
 		<div class="section-content">
 			<div class="row">
-				<label>长度</label>
+				<label>${t.length}</label>
 				<input type="number" id="passwordLength" value="16" min="4" max="128" onchange="saveSettings()">
 			</div>
 			<div class="checkbox-group">
-				<label><input type="checkbox" id="includeLower" checked onchange="saveSettings()"> 小写</label>
-				<label><input type="checkbox" id="includeUpper" checked onchange="saveSettings()"> 大写</label>
-				<label><input type="checkbox" id="includeNumber" checked onchange="saveSettings()"> 数字</label>
+				<label><input type="checkbox" id="includeLower" checked onchange="saveSettings()"> ${t.lowercase}</label>
+				<label><input type="checkbox" id="includeUpper" checked onchange="saveSettings()"> ${t.uppercase}</label>
+				<label><input type="checkbox" id="includeNumber" checked onchange="saveSettings()"> ${t.numbers}</label>
 				<div class="symbol-row">
-					<label><input type="checkbox" id="includeSymbol" checked onchange="toggleAllSymbols()"> 符号</label>
+					<label><input type="checkbox" id="includeSymbol" checked onchange="toggleAllSymbols()"> ${t.symbols}</label>
 					<button class="symbol-expand-btn" onclick="toggleSymbolDropdown(event)">...</button>
 				</div>
 			</div>
@@ -295,12 +380,15 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 				<div class="symbol-grid" id="symbolGrid"></div>
 			</div>
 			<div class="row">
-				<div class="result" id="generatedPassword">-</div>
+				<div class="result-with-suffix">
+					<input type="text" readonly class="result" id="generatedPassword" value="-">
+					<div class="result-actions">
+					<button class="icon-btn" onclick="copyText('generatedPassword')" title="${t.copy}"><i class="codicon codicon-copy"></i></button>
+				</div>
+				</div>
 			</div>
 			<div class="btn-group">
-				<button onclick="generatePassword()">生成</button>
-				<button class="secondary" onclick="copyText('generatedPassword')">复制</button>
-				<button class="secondary" onclick="insertText('generatedPassword')">插入</button>
+				<button onclick="generatePassword()">${t.generate}</button>
 			</div>
 		</div>
 	</div>
@@ -309,24 +397,27 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 	<div class="section collapsed" id="section-uuid">
 		<div class="section-header" onclick="toggleSection('uuid')">
 			<span class="arrow">▼</span>
-			<span>UUID 生成器</span>
+			<span>${t.uuidGenerator}</span>
 		</div>
 		<div class="section-content">
 			<div class="row">
-				<label>格式</label>
+				<label>${t.format}</label>
 				<select id="uuidFormat" onchange="saveSettings()">
-					<option value="standard">标准 (带连字符)</option>
-					<option value="nohyphen">无连字符</option>
-					<option value="uppercase">大写</option>
+					<option value="standard">${t.uuidStandard}</option>
+					<option value="nohyphen">${t.uuidNoHyphen}</option>
+					<option value="uppercase">${t.uppercase}</option>
 				</select>
 			</div>
 			<div class="row">
-				<div class="result" id="generatedUuid">-</div>
+				<div class="result-with-suffix">
+					<input type="text" readonly class="result" id="generatedUuid" value="-">
+					<div class="result-actions">
+					<button class="icon-btn" onclick="copyText('generatedUuid')" title="${t.copy}"><i class="codicon codicon-copy"></i></button>
+				</div>
+				</div>
 			</div>
 			<div class="btn-group">
-				<button onclick="generateUuid()">生成</button>
-				<button class="secondary" onclick="copyText('generatedUuid')">复制</button>
-				<button class="secondary" onclick="insertText('generatedUuid')">插入</button>
+				<button onclick="generateUuid()">${t.generate}</button>
 			</div>
 		</div>
 	</div>
@@ -335,34 +426,38 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 	<div class="section collapsed" id="section-sha256">
 		<div class="section-header" onclick="toggleSection('sha256')">
 			<span class="arrow">▼</span>
-			<span>HMAC-SHA256</span>
+			<span>${t.hmacSha256}</span>
 		</div>
 		<div class="section-content">
 			<div class="row">
-				<label>密钥 (Key)</label>
-				<input type="text" id="hmacKey" style="width:100%;padding:4px 8px;border:1px solid var(--vscode-input-border);background-color:var(--vscode-input-background);color:var(--vscode-input-foreground);border-radius:3px;font-family:var(--vscode-editor-font-family);font-size:0.85em;" placeholder="输入密钥">
+				<label>${t.key} (Key)</label>
+				<input type="text" id="hmacKey" style="width:100%;padding:4px 8px;border:1px solid var(--vscode-input-border);background-color:var(--vscode-input-background);color:var(--vscode-input-foreground);border-radius:3px;font-family:var(--vscode-editor-font-family);font-size:0.85em;" placeholder="${t.enterKey}">
 			</div>
 			<div class="row">
-				<label>消息 (Message)</label>
-				<textarea id="sha256Input" rows="2" style="width:100%;padding:4px 8px;border:1px solid var(--vscode-input-border);background-color:var(--vscode-input-background);color:var(--vscode-input-foreground);border-radius:3px;font-family:var(--vscode-editor-font-family);font-size:0.85em;resize:vertical;" placeholder="输入要计算哈希的消息"></textarea>
+				<label>${t.message} (Message)</label>
+				<textarea id="sha256Input" rows="2" style="width:100%;padding:4px 8px;border:1px solid var(--vscode-input-border);background-color:var(--vscode-input-background);color:var(--vscode-input-foreground);border-radius:3px;font-family:var(--vscode-editor-font-family);font-size:0.85em;resize:vertical;" placeholder="${t.enterMessage}"></textarea>
 			</div>
 			<div class="row">
-				<label>HMAC-SHA256</label>
-				<div class="result" id="sha256Result" style="font-size:0.75em;">-</div>
+				<label>${t.hmacSha256}</label>
+				<div class="result-with-suffix">
+					<input type="text" readonly class="result" id="sha256Result" style="font-size:0.75em;" value="-">
+					<div class="result-actions">
+					<button class="icon-btn" onclick="copyText('sha256Result')" title="${t.copy}"><i class="codicon codicon-copy"></i></button>
+				</div>
+				</div>
 			</div>
-			<div class="btn-group">
-				<button onclick="generateHmacSha256()">计算</button>
-				<button class="secondary" onclick="copyText('sha256Result')">复制</button>
-				<button class="secondary" onclick="insertText('sha256Result')">插入</button>
-			</div>
+		<div class="btn-group">
+			<button onclick="generateHmacSha256()">${t.compute}</button>
 		</div>
 	</div>
+</div>
 
 	<script>
 		const vscode = acquireVsCodeApi();
+		const L = ${JSON.stringify(t)};
 		const allSymbols = ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '-', '=', '[', ']', '{', '}', '|', ';', ':', ',', '.', '<', '>', '?'];
 		let selectedSymbols = new Set(allSymbols);
-		
+
 		// 从扩展传入的初始设置
 		let savedSettings = ${settingsJson};
 
@@ -370,12 +465,12 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 		function initSymbolGrid() {
 			const grid = document.getElementById('symbolGrid');
 			grid.innerHTML = '';
-			
+
 			// 从保存的设置恢复
 			if (savedSettings.selectedSymbols !== undefined) {
 				selectedSymbols = new Set(savedSettings.selectedSymbols);
 			}
-			
+
 			allSymbols.forEach(symbol => {
 				const item = document.createElement('div');
 				item.className = 'symbol-item' + (selectedSymbols.has(symbol) ? ' selected' : '');
@@ -406,7 +501,7 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 		function toggleAllSymbols() {
 			const checkbox = document.getElementById('includeSymbol');
 			const items = document.querySelectorAll('.symbol-item');
-			
+
 			if (checkbox.checked) {
 				// 全选
 				selectedSymbols = new Set(allSymbols);
@@ -450,10 +545,10 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 					sha256: document.getElementById('section-sha256').classList.contains('collapsed')
 				}
 			};
-			
+
 			// 发送到扩展保存
 			vscode.postMessage({ command: 'saveSettings', settings: settings });
-			
+
 			// 同时保存到 webview state（用于 webview 隐藏后恢复）
 			vscode.setState(settings);
 		}
@@ -520,12 +615,12 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 			try {
 				const date = new Date(timeStr.replace(/-/g, '/'));
 				if (isNaN(date.getTime())) {
-					document.getElementById('timestampInput').value = '无效的时间格式';
+					document.getElementById('timestampInput').value = L.invalidTimeFormat;
 					return;
 				}
 				document.getElementById('timestampInput').value = Math.floor(date.getTime() / 1000);
 			} catch (e) {
-				document.getElementById('timestampInput').value = '无效的时间格式';
+				document.getElementById('timestampInput').value = L.invalidTimeFormat;
 			}
 		}
 
@@ -537,7 +632,7 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 			try {
 				let ts = parseInt(tsStr, 10);
 				if (isNaN(ts)) {
-					document.getElementById('timeInput').value = '无效的时间戳';
+					document.getElementById('timeInput').value = L.invalidTimestamp;
 					return;
 				}
 				// 自动判断秒级或毫秒级
@@ -548,26 +643,35 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 				}
 				const date = new Date(ts);
 				if (isNaN(date.getTime())) {
-					document.getElementById('timeInput').value = '无效的时间戳';
+					document.getElementById('timeInput').value = L.invalidTimestamp;
 					return;
 				}
 				document.getElementById('timeInput').value = formatDate(date);
 			} catch (e) {
-				document.getElementById('timeInput').value = '无效的时间戳';
+				document.getElementById('timeInput').value = L.invalidTimestamp;
 			}
+		}
+
+		let isUpdating = false;
+
+		function onTimeInput() {
+			if (isUpdating) { return; }
+			isUpdating = true;
+			convertToTimestamp();
+			isUpdating = false;
+		}
+
+		function onTimestampInput() {
+			if (isUpdating) { return; }
+			isUpdating = true;
+			convertToTime();
+			isUpdating = false;
 		}
 
 		function copyValue(elementId) {
 			const text = document.getElementById(elementId).value;
 			if (text) {
 				vscode.postMessage({ command: 'copy', text: text });
-			}
-		}
-
-		function insertValue(elementId) {
-			const text = document.getElementById(elementId).value;
-			if (text) {
-				vscode.postMessage({ command: 'insert', text: text });
 			}
 		}
 
@@ -584,7 +688,7 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 
 			let allChars = '';
 			const requiredChars = [];
-			
+
 			if (includeLower) {
 				allChars += lowerChars;
 				requiredChars.push(lowerChars);
@@ -603,12 +707,12 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 			}
 
 			if (!allChars) {
-				document.getElementById('generatedPassword').textContent = '请至少选择一种字符类型';
+				document.getElementById('generatedPassword').value = L.selectAtLeastOne;
 				return;
 			}
 
 			if (length < requiredChars.length) {
-				document.getElementById('generatedPassword').textContent = '密码长度不足';
+				document.getElementById('generatedPassword').value = L.passwordLengthTooShort;
 				return;
 			}
 
@@ -616,34 +720,34 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 			let password = [];
 			const array = new Uint32Array(length + requiredChars.length);
 			crypto.getRandomValues(array);
-			
+
 			// 判断是否需要首字符为字母
 			const letterChars = (includeLower ? lowerChars : '') + (includeUpper ? upperChars : '');
-			
+
 			// 每种必选类型随机取一个
 			for (let i = 0; i < requiredChars.length; i++) {
 				const charSet = requiredChars[i];
 				password.push(charSet[array[i] % charSet.length]);
 			}
-			
+
 			// 剩余位置从所有字符中随机
 			for (let i = requiredChars.length; i < length; i++) {
 				password.push(allChars[array[i] % allChars.length]);
 			}
-			
+
 			// 打乱顺序（如果需要首字符为字母，则从索引1开始打乱）
 			const shuffleStart = letterChars ? 1 : 0;
 			for (let i = password.length - 1; i > shuffleStart; i--) {
 				const j = shuffleStart + (array[length + i] % (i - shuffleStart + 1));
 				[password[i], password[j]] = [password[j], password[i]];
 			}
-			
+
 			// 确保首字符为字母
 			if (letterChars) {
 				password[0] = letterChars[array[length] % letterChars.length];
 			}
-			
-			document.getElementById('generatedPassword').textContent = password.join('');
+
+			document.getElementById('generatedPassword').value = password.join('');
 		}
 
 		function generateUuid() {
@@ -663,27 +767,27 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 					break;
 			}
 
-			document.getElementById('generatedUuid').textContent = uuid;
+			document.getElementById('generatedUuid').value = uuid;
 		}
 
 		async function generateHmacSha256() {
 			const key = document.getElementById('hmacKey').value;
 			const message = document.getElementById('sha256Input').value;
-			
+
 			if (!key) {
-				document.getElementById('sha256Result').textContent = '请输入密钥';
+				document.getElementById('sha256Result').value = L.enterKeyMsg;
 				return;
 			}
 			if (!message) {
-				document.getElementById('sha256Result').textContent = '请输入消息';
+				document.getElementById('sha256Result').value = L.enterMessageMsg;
 				return;
 			}
-			
+
 			try {
 				const encoder = new TextEncoder();
 				const keyData = encoder.encode(key);
 				const messageData = encoder.encode(message);
-				
+
 				const cryptoKey = await crypto.subtle.importKey(
 					'raw',
 					keyData,
@@ -691,27 +795,20 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 					false,
 					['sign']
 				);
-				
+
 				const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
 				const hashArray = Array.from(new Uint8Array(signature));
 				const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-				document.getElementById('sha256Result').textContent = hashHex;
+				document.getElementById('sha256Result').value = hashHex;
 			} catch (e) {
-				document.getElementById('sha256Result').textContent = '计算失败: ' + e.message;
+				document.getElementById('sha256Result').value = L.computationFailed + e.message;
 			}
 		}
 
 		function copyText(elementId) {
-			const text = document.getElementById(elementId).textContent;
+			const text = document.getElementById(elementId).value;
 			if (text && text !== '-') {
 				vscode.postMessage({ command: 'copy', text: text });
-			}
-		}
-
-		function insertText(elementId) {
-			const text = document.getElementById(elementId).textContent;
-			if (text && text !== '-') {
-				vscode.postMessage({ command: 'insert', text: text });
 			}
 		}
 

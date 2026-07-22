@@ -3,6 +3,8 @@
  * 用于智能识别文本类型，为 Quick Pick 提供排序依据
  */
 
+import * as vscode from 'vscode';
+
 export interface DetectionResult {
 	type: string;
 	confidence: number; // 0-1，置信度
@@ -29,7 +31,7 @@ function isBase64(text: string): DetectionResult | null {
 				return {
 					type: 'base64',
 					confidence: Math.min(0.9, 0.5 + printableRatio * 0.4),
-					description: '检测到 Base64 编码'
+					description: vscode.l10n.t('Detected Base64 encoding')
 				};
 			}
 		} catch {
@@ -51,7 +53,7 @@ function isUrlEncoded(text: string): DetectionResult | null {
 		return {
 			type: 'urlEncoded',
 			confidence: Math.min(0.9, 0.4 + ratio),
-			description: '检测到 URL 编码'
+			description: vscode.l10n.t('Detected URL encoding')
 		};
 	}
 	return null;
@@ -70,7 +72,7 @@ function isJson(text: string): DetectionResult | null {
 			return {
 				type: isFormatted ? 'jsonFormatted' : 'jsonMinified',
 				confidence: 0.95,
-				description: isFormatted ? '检测到已格式化的 JSON' : '检测到压缩的 JSON'
+				description: isFormatted ? vscode.l10n.t('Detected formatted JSON') : vscode.l10n.t('Detected minified JSON')
 			};
 		} catch {
 			// 可能是无效 JSON，但看起来像
@@ -78,7 +80,7 @@ function isJson(text: string): DetectionResult | null {
 				return {
 					type: 'jsonLike',
 					confidence: 0.3,
-					description: '可能是 JSON'
+					description: vscode.l10n.t('Possibly JSON')
 				};
 			}
 		}
@@ -98,7 +100,7 @@ function isUnicodeEscaped(text: string): DetectionResult | null {
 		return {
 			type: 'unicodeEscaped',
 			confidence: Math.min(0.9, 0.4 + ratio),
-			description: '检测到 Unicode 转义'
+			description: vscode.l10n.t('Detected Unicode escape')
 		};
 	}
 	return null;
@@ -116,7 +118,7 @@ function isTimestamp(text: string): DetectionResult | null {
 			return {
 				type: 'timestampSeconds',
 				confidence: 0.85,
-				description: '检测到秒级时间戳'
+				description: vscode.l10n.t('Detected seconds timestamp')
 			};
 		}
 	}
@@ -128,7 +130,7 @@ function isTimestamp(text: string): DetectionResult | null {
 			return {
 				type: 'timestampMillis',
 				confidence: 0.85,
-				description: '检测到毫秒级时间戳'
+				description: vscode.l10n.t('Detected milliseconds timestamp')
 			};
 		}
 	}
@@ -153,7 +155,7 @@ function isDateTime(text: string): DetectionResult | null {
 			return {
 				type: 'dateTime',
 				confidence: 0.9,
-				description: '检测到日期时间'
+				description: vscode.l10n.t('Detected date-time')
 			};
 		}
 	}
@@ -174,7 +176,7 @@ function isIpAddress(text: string): DetectionResult | null {
 			return {
 				type: 'ipAddress',
 				confidence: 0.95,
-				description: '检测到 IP 地址'
+				description: vscode.l10n.t('Detected IP address')
 			};
 		}
 	}
@@ -195,7 +197,7 @@ function isInteger(text: string): DetectionResult | null {
 				return {
 					type: 'integer',
 					confidence: 0.5,
-					description: '检测到整数'
+					description: vscode.l10n.t('Detected integer')
 				};
 			}
 		}
@@ -213,7 +215,7 @@ function isHexString(text: string): DetectionResult | null {
 		return {
 			type: 'hexString',
 			confidence: 0.6,
-			description: '检测到十六进制字符串'
+			description: vscode.l10n.t('Detected hex string')
 		};
 	}
 	
@@ -232,7 +234,7 @@ function isEscaped(text: string): DetectionResult | null {
 		return {
 			type: 'escaped',
 			confidence: 0.7,
-			description: '检测到转义字符'
+			description: vscode.l10n.t('Detected escape characters')
 		};
 	}
 	

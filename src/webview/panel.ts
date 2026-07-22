@@ -1,15 +1,18 @@
 import * as vscode from 'vscode';
+import { getWebviewL10n } from '../utils/l10n';
 
 export class TextorPanel {
 	public static currentPanel: TextorPanel | undefined;
 	private readonly _panel: vscode.WebviewPanel;
+	private readonly _extensionUri: vscode.Uri;
 	private readonly _context: vscode.ExtensionContext;
 	private _disposables: vscode.Disposable[] = [];
 
 	private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, context: vscode.ExtensionContext) {
 		this._panel = panel;
+		this._extensionUri = extensionUri;
 		this._context = context;
-		
+
 		// 获取保存的设置
 		const savedSettings = this._context.globalState.get<Record<string, unknown>>('textorPanelSettings', {});
 		this._panel.webview.html = this._getHtmlContent(savedSettings);
@@ -21,7 +24,7 @@ export class TextorPanel {
 				switch (message.command) {
 					case 'copy':
 						await vscode.env.clipboard.writeText(message.text);
-						vscode.window.showInformationMessage('已复制到剪贴板');
+						vscode.window.showInformationMessage(vscode.l10n.t('Copied to clipboard'));
 						break;
 					case 'insert':
 						const editor = vscode.window.activeTextEditor;
@@ -77,12 +80,17 @@ export class TextorPanel {
 
 	private _getHtmlContent(savedSettings: Record<string, unknown>): string {
 		const settingsJson = JSON.stringify(savedSettings);
+		const t = getWebviewL10n();
+		const codiconsUri = this._panel.webview.asWebviewUri(
+			vscode.Uri.joinPath(this._extensionUri, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css')
+		);
 		return `<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="${t.lang}">
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Textor Tools</title>
+	<link href="${codiconsUri}" rel="stylesheet">
 	<style>
 		* {
 			box-sizing: border-box;
@@ -160,19 +168,95 @@ export class TextorPanel {
 			background-color: var(--vscode-button-secondaryHoverBackground);
 		}
 		.result {
+			width: 100%;
 			font-family: var(--vscode-editor-font-family);
 			padding: 8px 12px;
 			background-color: var(--vscode-editor-background);
+			color: var(--vscode-input-foreground);
 			border: 1px solid var(--vscode-input-border);
 			border-radius: 4px;
-			word-break: break-all;
-			min-height: 36px;
-			display: flex;
-			align-items: center;
+			font-size: 13px;
+			box-sizing: border-box;
+			cursor: text;
+			outline: none;
 		}
 		.btn-group {
 			display: flex;
 			gap: 8px;
+		}
+		.input-with-suffix {
+			position: relative;
+			flex: 1;
+			display: flex;
+			align-items: center;
+		}
+		.input-with-suffix input {
+			width: 100%;
+			padding: 6px 72px 6px 10px;
+			flex: none;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: clip;
+		}
+		.input-actions {
+			position: absolute;
+			right: 4px;
+			top: 0;
+			height: 100%;
+			display: flex;
+			align-items: center;
+			gap: 2px;
+		}
+		.input-actions .icon-btn {
+			background: transparent;
+			border: none;
+			color: var(--vscode-foreground);
+			padding: 2px 4px;
+			font-size: 14px;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			border-radius: 3px;
+		}
+		.input-actions .icon-btn:hover {
+			background-color: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground));
+		}
+		.result-with-suffix {
+			position: relative;
+			flex: 1;
+			display: flex;
+			align-items: center;
+		}
+		.result-with-suffix .result {
+			padding: 8px 48px 8px 12px;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: clip;
+		}
+		.result-actions {
+			position: absolute;
+			right: 4px;
+			top: 0;
+			height: 100%;
+			display: flex;
+			align-items: center;
+			gap: 2px;
+		}
+		.result-actions .icon-btn {
+			background: transparent;
+			border: none;
+			color: var(--vscode-foreground);
+			padding: 2px 4px;
+			font-size: 14px;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			border-radius: 3px;
+		}
+		.result-actions .icon-btn:hover {
+			background-color: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground));
 		}
 	</style>
 </head>
@@ -181,92 +265,96 @@ export class TextorPanel {
 
 	<!-- 时间工具 -->
 	<div class="section">
-		<div class="section-title">时间工具</div>
+		<div class="section-title">${t.timeTools}</div>
 		<div class="row">
-			<label>时间字符串:</label>
-			<input type="text" id="timeInput" placeholder="如: 2025-01-10 12:00:00">
-		</div>
-		<div class="row" style="justify-content: flex-start; margin-top: 4px; margin-bottom: 4px;">
-			<div class="btn-group">
-				<button class="secondary" onclick="convertToTimestamp()">↓ 转为时间戳</button>
-				<button class="secondary" onclick="convertToTime()">↑ 转为时间</button>
-				<button class="secondary" onclick="setCurrentTime()">当前时间</button>
+			<label>${t.timeString}:</label>
+			<div class="input-with-suffix">
+				<input type="text" id="timeInput" placeholder="${t.timePlaceholder}" oninput="onTimeInput()">
+				<div class="input-actions">
+					<button class="icon-btn" onclick="setCurrentTime()" title="${t.refresh}"><i class="codicon codicon-refresh"></i></button>
+				<button class="icon-btn" onclick="copyValue('timeInput')" title="${t.copy}"><i class="codicon codicon-copy"></i></button>
+				</div>
 			</div>
 		</div>
 		<div class="row">
-			<label>时间戳:</label>
-			<input type="text" id="timestampInput" placeholder="如: 1736481600">
-		</div>
-		<div class="row" style="margin-top: 4px;">
-			<div class="btn-group">
-				<button class="secondary" onclick="copyValue('timeInput')">复制时间</button>
-				<button class="secondary" onclick="copyValue('timestampInput')">复制时间戳</button>
-				<button class="secondary" onclick="insertValue('timeInput')">插入时间</button>
-				<button class="secondary" onclick="insertValue('timestampInput')">插入时间戳</button>
+			<label>${t.timestamp}:</label>
+			<div class="input-with-suffix">
+				<input type="text" id="timestampInput" placeholder="${t.timestampPlaceholder}" oninput="onTimestampInput()">
+				<div class="input-actions">
+					<button class="icon-btn" onclick="setCurrentTime()" title="${t.refresh}"><i class="codicon codicon-refresh"></i></button>
+				<button class="icon-btn" onclick="copyValue('timestampInput')" title="${t.copy}"><i class="codicon codicon-copy"></i></button>
+				</div>
 			</div>
 		</div>
 	</div>
 
 	<!-- 密码生成器 -->
 	<div class="section">
-		<div class="section-title">密码生成器</div>
+		<div class="section-title">${t.passwordGenerator}</div>
 		<div class="row">
-			<label>长度:</label>
+			<label>${t.length}:</label>
 			<input type="number" id="passwordLength" value="16" min="4" max="128" style="max-width: 80px;" onchange="saveSettings()">
 			<label style="min-width: auto;">
-				<input type="checkbox" id="includeLower" checked onchange="saveSettings()"> 小写
+				<input type="checkbox" id="includeLower" checked onchange="saveSettings()"> ${t.lowercase}
 			</label>
 			<label style="min-width: auto;">
-				<input type="checkbox" id="includeUpper" checked onchange="saveSettings()"> 大写
+				<input type="checkbox" id="includeUpper" checked onchange="saveSettings()"> ${t.uppercase}
 			</label>
 			<label style="min-width: auto;">
-				<input type="checkbox" id="includeNumber" checked onchange="saveSettings()"> 数字
+				<input type="checkbox" id="includeNumber" checked onchange="saveSettings()"> ${t.numbers}
 			</label>
 			<label style="min-width: auto;">
-				<input type="checkbox" id="includeSymbol" checked onchange="saveSettings()"> 符号
+				<input type="checkbox" id="includeSymbol" checked onchange="saveSettings()"> ${t.symbols}
 			</label>
 		</div>
 		<div class="row">
-			<label>密码:</label>
-			<div class="result" id="generatedPassword">-</div>
+			<label>${t.password}:</label>
+			<div class="result-with-suffix">
+				<input type="text" readonly class="result" id="generatedPassword" value="-">
+				<div class="result-actions">
+				<button class="icon-btn" onclick="copyText('generatedPassword')" title="${t.copy}"><i class="codicon codicon-copy"></i></button>
+				</div>
+			</div>
 		</div>
 		<div class="row">
 			<div class="btn-group">
-				<button onclick="generatePassword()">生成密码</button>
-				<button class="secondary" onclick="copyText('generatedPassword')">复制</button>
-				<button class="secondary" onclick="insertText('generatedPassword')">插入</button>
+				<button onclick="generatePassword()">${t.generatePassword}</button>
 			</div>
 		</div>
 	</div>
 
 	<!-- UUID 生成器 -->
 	<div class="section">
-		<div class="section-title">UUID 生成器</div>
+		<div class="section-title">${t.uuidGenerator}</div>
 		<div class="row">
-			<label>格式:</label>
+			<label>${t.format}:</label>
 			<select id="uuidFormat" style="max-width: 200px;" onchange="saveSettings()">
-				<option value="standard">标准 (带连字符)</option>
-				<option value="nohyphen">无连字符</option>
-				<option value="uppercase">大写</option>
-				<option value="braces">带花括号</option>
+				<option value="standard">${t.uuidStandard}</option>
+				<option value="nohyphen">${t.uuidNoHyphen}</option>
+				<option value="uppercase">${t.uppercase}</option>
+				<option value="braces">${t.uuidBraces}</option>
 			</select>
 		</div>
 		<div class="row">
-			<label>UUID:</label>
-			<div class="result" id="generatedUuid">-</div>
+			<label>${t.uuid}:</label>
+			<div class="result-with-suffix">
+				<input type="text" readonly class="result" id="generatedUuid" value="-">
+				<div class="result-actions">
+				<button class="icon-btn" onclick="copyText('generatedUuid')" title="${t.copy}"><i class="codicon codicon-copy"></i></button>
+				</div>
+			</div>
 		</div>
 		<div class="row">
 			<div class="btn-group">
-				<button onclick="generateUuid()">生成 UUID</button>
-				<button class="secondary" onclick="copyText('generatedUuid')">复制</button>
-				<button class="secondary" onclick="insertText('generatedUuid')">插入</button>
+				<button onclick="generateUuid()">${t.generateUuid}</button>
 			</div>
 		</div>
 	</div>
 
 	<script>
 		const vscode = acquireVsCodeApi();
-		
+		const L = ${JSON.stringify(t)};
+
 		// 从扩展传入的初始设置
 		let savedSettings = ${settingsJson};
 
@@ -290,7 +378,7 @@ export class TextorPanel {
 			if (state) {
 				savedSettings = state;
 			}
-			
+
 			if (savedSettings.passwordLength) {
 				document.getElementById('passwordLength').value = savedSettings.passwordLength;
 			}
@@ -335,12 +423,12 @@ export class TextorPanel {
 			try {
 				const date = new Date(timeStr.replace(/-/g, '/'));
 				if (isNaN(date.getTime())) {
-					document.getElementById('timestampInput').value = '无效的时间格式';
+					document.getElementById('timestampInput').value = L.invalidTimeFormat;
 					return;
 				}
 				document.getElementById('timestampInput').value = Math.floor(date.getTime() / 1000);
 			} catch (e) {
-				document.getElementById('timestampInput').value = '无效的时间格式';
+				document.getElementById('timestampInput').value = L.invalidTimeFormat;
 			}
 		}
 
@@ -352,7 +440,7 @@ export class TextorPanel {
 			try {
 				let ts = parseInt(tsStr, 10);
 				if (isNaN(ts)) {
-					document.getElementById('timeInput').value = '无效的时间戳';
+					document.getElementById('timeInput').value = L.invalidTimestamp;
 					return;
 				}
 				// 自动判断秒级或毫秒级
@@ -363,26 +451,35 @@ export class TextorPanel {
 				}
 				const date = new Date(ts);
 				if (isNaN(date.getTime())) {
-					document.getElementById('timeInput').value = '无效的时间戳';
+					document.getElementById('timeInput').value = L.invalidTimestamp;
 					return;
 				}
 				document.getElementById('timeInput').value = formatDate(date);
 			} catch (e) {
-				document.getElementById('timeInput').value = '无效的时间戳';
+				document.getElementById('timeInput').value = L.invalidTimestamp;
 			}
+		}
+
+		let isUpdating = false;
+
+		function onTimeInput() {
+			if (isUpdating) { return; }
+			isUpdating = true;
+			convertToTimestamp();
+			isUpdating = false;
+		}
+
+		function onTimestampInput() {
+			if (isUpdating) { return; }
+			isUpdating = true;
+			convertToTime();
+			isUpdating = false;
 		}
 
 		function copyValue(elementId) {
 			const text = document.getElementById(elementId).value;
 			if (text) {
 				vscode.postMessage({ command: 'copy', text: text });
-			}
-		}
-
-		function insertValue(elementId) {
-			const text = document.getElementById(elementId).value;
-			if (text) {
-				vscode.postMessage({ command: 'insert', text: text });
 			}
 		}
 
@@ -400,7 +497,7 @@ export class TextorPanel {
 
 			let allChars = '';
 			const requiredChars = [];
-			
+
 			if (includeLower) {
 				allChars += lowerChars;
 				requiredChars.push(lowerChars);
@@ -419,12 +516,12 @@ export class TextorPanel {
 			}
 
 			if (!allChars) {
-				document.getElementById('generatedPassword').textContent = '请至少选择一种字符类型';
+				document.getElementById('generatedPassword').value = L.selectAtLeastOne;
 				return;
 			}
 
 			if (length < requiredChars.length) {
-				document.getElementById('generatedPassword').textContent = '密码长度不足以包含所有选中的字符类型';
+				document.getElementById('generatedPassword').value = L.passwordLengthInsufficient;
 				return;
 			}
 
@@ -432,34 +529,34 @@ export class TextorPanel {
 			let password = [];
 			const array = new Uint32Array(length + requiredChars.length);
 			crypto.getRandomValues(array);
-			
+
 			// 判断是否需要首字符为字母
 			const letterChars = (includeLower ? lowerChars : '') + (includeUpper ? upperChars : '');
-			
+
 			// 每种必选类型随机取一个
 			for (let i = 0; i < requiredChars.length; i++) {
 				const charSet = requiredChars[i];
 				password.push(charSet[array[i] % charSet.length]);
 			}
-			
+
 			// 剩余位置从所有字符中随机
 			for (let i = requiredChars.length; i < length; i++) {
 				password.push(allChars[array[i] % allChars.length]);
 			}
-			
+
 			// 打乱顺序（如果需要首字符为字母，则从索引1开始打乱）
 			const shuffleStart = letterChars ? 1 : 0;
 			for (let i = password.length - 1; i > shuffleStart; i--) {
 				const j = shuffleStart + (array[length + i] % (i - shuffleStart + 1));
 				[password[i], password[j]] = [password[j], password[i]];
 			}
-			
+
 			// 确保首字符为字母
 			if (letterChars) {
 				password[0] = letterChars[array[length] % letterChars.length];
 			}
-			
-			document.getElementById('generatedPassword').textContent = password.join('');
+
+			document.getElementById('generatedPassword').value = password.join('');
 		}
 
 		function generateUuid() {
@@ -482,20 +579,13 @@ export class TextorPanel {
 					break;
 			}
 
-			document.getElementById('generatedUuid').textContent = uuid;
+			document.getElementById('generatedUuid').value = uuid;
 		}
 
 		function copyText(elementId) {
-			const text = document.getElementById(elementId).textContent;
+			const text = document.getElementById(elementId).value;
 			if (text && text !== '-') {
 				vscode.postMessage({ command: 'copy', text: text });
-			}
-		}
-
-		function insertText(elementId) {
-			const text = document.getElementById(elementId).textContent;
-			if (text && text !== '-') {
-				vscode.postMessage({ command: 'insert', text: text });
 			}
 		}
 

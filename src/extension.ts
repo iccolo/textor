@@ -28,13 +28,13 @@ export function activate(context: vscode.ExtensionContext) {
 	const smartTransformCmd = vscode.commands.registerCommand('textor.smartTransform', async () => {
 		const editor = vscode.window.activeTextEditor;
 		if (!editor) {
-			vscode.window.showWarningMessage('没有打开的编辑器');
+			vscode.window.showWarningMessage(vscode.l10n.t('No active editor'));
 			return;
 		}
 
 		const selected = getSelectedText(editor);
 		if (!selected) {
-			vscode.window.showWarningMessage('请先选中文本');
+			vscode.window.showWarningMessage(vscode.l10n.t('Please select text first'));
 			return;
 		}
 
@@ -55,8 +55,8 @@ export function activate(context: vscode.ExtensionContext) {
 			const protoFormatter = transformers.find(t => t.id === 'protoFormat');
 			if (protoFormatter) {
 				items.push({
-					label: `$(star-full) ${protoFormatter.title}`,
-					description: '检测到 Proto 文件',
+					label: `$(star-full) ${vscode.l10n.t(protoFormatter.title)}`,
+					description: vscode.l10n.t('Detected Proto file'),
 					transformerId: protoFormatter.id,
 				});
 				addedIds.add(protoFormatter.id);
@@ -69,8 +69,8 @@ export function activate(context: vscode.ExtensionContext) {
 			if (transformer && !addedIds.has(id)) {
 				const detection = detections.find(d => getRecommendedTransformers([d]).includes(id));
 				items.push({
-					label: `$(star-full) ${transformer.title}`,
-					description: detection?.description || '推荐',
+					label: `$(star-full) ${vscode.l10n.t(transformer.title)}`,
+					description: detection?.description || vscode.l10n.t('Recommended'),
 					transformerId: id,
 				});
 				addedIds.add(id);
@@ -90,7 +90,7 @@ export function activate(context: vscode.ExtensionContext) {
 		for (const transformer of transformers) {
 			if (!addedIds.has(transformer.id)) {
 				items.push({
-					label: transformer.title,
+					label: vscode.l10n.t(transformer.title),
 					transformerId: transformer.id,
 				});
 			}
@@ -98,7 +98,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		// 显示 Quick Pick
 		const picked = await vscode.window.showQuickPick(items, {
-			placeHolder: '选择转换操作',
+			placeHolder: vscode.l10n.t('Select a transformation'),
 			matchOnDescription: true,
 		});
 
@@ -108,9 +108,9 @@ export function activate(context: vscode.ExtensionContext) {
 				try {
 					const result = await transformer.transform(selected.text);
 					await replaceSelectedText(editor, selected.selection, result);
-					vscode.window.showInformationMessage(`${transformer.title} 成功`);
+					vscode.window.showInformationMessage(vscode.l10n.t('{0} succeeded', vscode.l10n.t(transformer.title)));
 				} catch (error) {
-					vscode.window.showErrorMessage(`${transformer.title} 失败: ${error}`);
+					vscode.window.showErrorMessage(vscode.l10n.t('{0} failed: {1}', vscode.l10n.t(transformer.title), String(error)));
 				}
 			}
 		}
@@ -122,7 +122,7 @@ export function activate(context: vscode.ExtensionContext) {
 		const cmd = vscode.commands.registerCommand(`textor.${t.id}`, async () => {
 			const editor = vscode.window.activeTextEditor;
 			if (!editor) {
-				vscode.window.showWarningMessage('没有打开的编辑器');
+				vscode.window.showWarningMessage(vscode.l10n.t('No active editor'));
 				return;
 			}
 
@@ -134,9 +134,9 @@ export function activate(context: vscode.ExtensionContext) {
 			try {
 				const result = await t.transform(selected.text);
 				await replaceSelectedText(editor, selected.selection, result);
-				vscode.window.showInformationMessage(`${t.title} 成功`);
+				vscode.window.showInformationMessage(vscode.l10n.t('{0} succeeded', vscode.l10n.t(t.title)));
 			} catch (error) {
-				vscode.window.showErrorMessage(`${t.title} 失败: ${error}`);
+				vscode.window.showErrorMessage(vscode.l10n.t('{0} failed: {1}', vscode.l10n.t(t.title), String(error)));
 			}
 		});
 		context.subscriptions.push(cmd);

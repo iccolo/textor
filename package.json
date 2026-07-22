@@ -1,8 +1,8 @@
 {
   "name": "textor",
   "displayName": "Textor",
-  "description": "Text formatting and conversion tool: JSON, Base64, URL, Unicode, Timestamp, IP, SQL, Protobuf, Hex/ASCII and more.",
-  "version": "0.0.2",
+  "description": "%extension.description%",
+  "version": "0.0.3",
   "publisher": "iccolo",
   "icon": "icon.jpg",
   "license": "MIT",
@@ -60,6 +60,7 @@
     "onView:textor.sidebarView"
   ],
   "main": "./dist/extension.js",
+  "l10n": "./l10n",
   "contributes": {
     "viewsContainers": {
       "activitybar": [
@@ -75,122 +76,122 @@
         {
           "type": "webview",
           "id": "textor.sidebarView",
-          "name": "Tools"
+          "name": "%view.tools.name%"
         }
       ]
     },
     "commands": [
       {
         "command": "textor.smartTransform",
-        "title": "Textor: Smart Transform"
+        "title": "%command.smartTransform.title%"
       },
       {
         "command": "textor.openPanel",
-        "title": "Textor: Open Tools Panel"
+        "title": "%command.openPanel.title%"
       },
       {
         "command": "textor.base64Encode",
-        "title": "Textor: Base64 Encode"
+        "title": "%command.base64Encode.title%"
       },
       {
         "command": "textor.base64Decode",
-        "title": "Textor: Base64 Decode"
+        "title": "%command.base64Decode.title%"
       },
       {
         "command": "textor.jsonFormat",
-        "title": "Textor: JSON Format"
+        "title": "%command.jsonFormat.title%"
       },
       {
         "command": "textor.jsonMinify",
-        "title": "Textor: JSON Minify"
+        "title": "%command.jsonMinify.title%"
       },
       {
         "command": "textor.urlEncode",
-        "title": "Textor: URL Encode"
+        "title": "%command.urlEncode.title%"
       },
       {
         "command": "textor.urlDecode",
-        "title": "Textor: URL Decode"
+        "title": "%command.urlDecode.title%"
       },
       {
         "command": "textor.escape",
-        "title": "Textor: Escape"
+        "title": "%command.escape.title%"
       },
       {
         "command": "textor.unescape",
-        "title": "Textor: Unescape"
+        "title": "%command.unescape.title%"
       },
       {
         "command": "textor.unicodeEncode",
-        "title": "Textor: Unicode Encode"
+        "title": "%command.unicodeEncode.title%"
       },
       {
         "command": "textor.unicodeDecode",
-        "title": "Textor: Unicode Decode"
+        "title": "%command.unicodeDecode.title%"
       },
       {
         "command": "textor.timestampToDate",
-        "title": "Textor: Timestamp to Date"
+        "title": "%command.timestampToDate.title%"
       },
       {
         "command": "textor.dateToTimestamp",
-        "title": "Textor: Date to Timestamp"
+        "title": "%command.dateToTimestamp.title%"
       },
       {
         "command": "textor.ipToInt",
-        "title": "Textor: IP to Integer"
+        "title": "%command.ipToInt.title%"
       },
       {
         "command": "textor.intToIp",
-        "title": "Textor: Integer to IP"
+        "title": "%command.intToIp.title%"
       },
       {
         "command": "textor.sqlFormat",
-        "title": "Textor: SQL Format"
+        "title": "%command.sqlFormat.title%"
       },
       {
         "command": "textor.sqlMinify",
-        "title": "Textor: SQL Minify"
+        "title": "%command.sqlMinify.title%"
       },
       {
         "command": "textor.toUpperCase",
-        "title": "Textor: To Upper Case"
+        "title": "%command.toUpperCase.title%"
       },
       {
         "command": "textor.toLowerCase",
-        "title": "Textor: To Lower Case"
+        "title": "%command.toLowerCase.title%"
       },
       {
         "command": "textor.toTitleCase",
-        "title": "Textor: To Title Case"
+        "title": "%command.toTitleCase.title%"
       },
       {
         "command": "textor.toCamelCase",
-        "title": "Textor: To Camel Case"
+        "title": "%command.toCamelCase.title%"
       },
       {
         "command": "textor.toSnakeCase",
-        "title": "Textor: To Snake Case"
+        "title": "%command.toSnakeCase.title%"
       },
       {
         "command": "textor.hexToProtobuf",
-        "title": "Textor: Hex to Protobuf"
+        "title": "%command.hexToProtobuf.title%"
       },
       {
         "command": "textor.protobufToHex",
-        "title": "Textor: Protobuf to Hex"
+        "title": "%command.protobufToHex.title%"
       },
       {
         "command": "textor.asciiToHex",
-        "title": "Textor: ASCII to Hex"
+        "title": "%command.asciiToHex.title%"
       },
       {
         "command": "textor.hexToAscii",
-        "title": "Textor: Hex to ASCII"
+        "title": "%command.hexToAscii.title%"
       },
       {
         "command": "textor.protoFormat",
-        "title": "Textor: Proto Format"
+        "title": "%command.protoFormat.title%"
       }
     ],
     "menus": {
@@ -226,15 +227,16 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.100.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
-    "typescript-eslint": "^8.48.1",
-    "eslint": "^9.39.1",
+    "@types/vscode": "^1.100.0",
+    "@vscode/codicons": "^0.0.36",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
     "esbuild": "^0.27.1",
+    "eslint": "^9.39.1",
     "npm-run-all": "^4.1.5",
     "typescript": "^5.9.3",
-    "@vscode/test-cli": "^0.0.12",
-    "@vscode/test-electron": "^2.5.2"
+    "typescript-eslint": "^8.48.1"
   }
 }

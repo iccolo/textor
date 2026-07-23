@@ -1,4 +1,5 @@
 const esbuild = require("esbuild");
+const { copy } = require("esbuild-plugin-copy");
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
@@ -38,6 +39,21 @@ async function main() {
 		external: ['vscode'],
 		logLevel: 'silent',
 		plugins: [
+			copy({
+				assets: [
+					{
+						from: ['node_modules/@vscode/codicons/dist/codicon.css'],
+						to: ['codicons'],
+					},
+					{
+						from: ['node_modules/@vscode/codicons/dist/codicon.ttf'],
+						to: ['codicons'],
+					},
+				],
+				// esbuild-plugin-copy resolves `to` relative to outfile's directory,
+				// so this ends up copying into dist/codicons/.
+				watch: watch,
+			}),
 			/* add to the end of plugins array */
 			esbuildProblemMatcherPlugin,
 		],

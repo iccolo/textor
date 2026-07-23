@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { getWebviewL10n } from '../utils/l10n';
+import { getWebviewAssets } from './assets';
 
 export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 	public static readonly viewType = 'textor.sidebarView';
@@ -51,16 +52,14 @@ export class TextorSidebarProvider implements vscode.WebviewViewProvider {
 	private _getHtmlContent(savedSettings: Record<string, unknown>): string {
 		const settingsJson = JSON.stringify(savedSettings);
 		const t = getWebviewL10n();
-		const codiconsUri = this._view!.webview.asWebviewUri(
-			vscode.Uri.joinPath(this._extensionUri, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css')
-		);
+		const assets = getWebviewAssets(this._view!.webview, this._extensionUri);
 		return `<!DOCTYPE html>
 <html lang="${t.lang}">
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Textor Tools</title>
-	<link href="${codiconsUri}" rel="stylesheet">
+	<link href="${assets.codiconsCss}" rel="stylesheet">
 	<style>
 		* {
 			box-sizing: border-box;
